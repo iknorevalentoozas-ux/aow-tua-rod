@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Wild Town</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --panel: rgba(20, 24, 36, 0.78);
+    --panel-solid: #1a1f2e;
+    --text: #fff;
+    --muted: #b8c0d8;
+    --gold: #ffd54a;
+    --green: #5fd068;
+    --red: #ff5a5a;
+    --accent: #ff9f1c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0e1320; color: var(--text);
+    font-family: 'Kanit', system-ui, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
+  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+  .hidden { display: none !important; }
+
+  /* world labels */
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .lbl { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform;
+    font-weight: 600; text-shadow: 0 2px 3px rgba(0,0,0,.7); font-size: 13px; }
+  .lbl.name { font-size: 13px; }
+  .lbl.name .hp, .lbl.bar .hp { width: 46px; height: 5px; background: rgba(0,0,0,.55); border-radius: 3px; margin: 2px auto 0; overflow: hidden; }
+  .hp i { display: block; height: 100%; background: var(--green); }
+  .hp.bad i { background: var(--red); }
+  .lbl.plot { background: rgba(15, 20, 35, .82); border: 2px solid rgba(255,255,255,.25); border-radius: 10px; padding: 3px 9px;
+    text-align: center; font-size: 12px; line-height: 1.35; }
+  .lbl.plot b { color: var(--gold); font-size: 13px; }
+  .lbl.plot .lk { color: var(--muted); font-size: 11px; }
+  .lbl.pad { font-size: 12px; background: rgba(0,0,0,.45); border-radius: 8px; padding: 1px 7px; }
+  .lbl.bub { background: #fff; color: #222; border-radius: 12px; padding: 2px 8px; font-size: 13px; text-shadow: none; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  .lbl.float { font-size: 18px; font-weight: 800; }
+  .lbl.float.gold { color: var(--gold); }
+  .lbl.float.dmg { color: #fff; font-size: 14px; }
+  .lbl.float.hurt { color: var(--red); }
+  .lbl.emote { font-size: 30px; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  .panel { background: var(--panel); border-radius: 14px; padding: 8px 12px; backdrop-filter: blur(4px); }
+  #topbar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); min-width: 260px; text-align: center; }
+  #dayText { font-size: 18px; font-weight: 800; }
+  #phaseBar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); margin-top: 5px; overflow: hidden; }
+  #phaseBar i { display: block; height: 100%; background: linear-gradient(90deg, #ffd54a, #ff9f1c); }
+  #phaseBar.night i { background: linear-gradient(90deg, #7b6cff, #c05cff); }
+  #totalText { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  #stats { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; }
+  #money { font-size: 26px; font-weight: 800; color: var(--gold); }
+  #core { font-size: 14px; }
+  #coreBar { width: 170px; height: 9px; background: rgba(0,0,0,.5); border-radius: 5px; overflow: hidden; margin-top: 3px; }
+  #coreBar i { display: block; height: 100%; background: linear-gradient(90deg, #ff5a5a, #ffb04a); }
+  #carry { position: absolute; left: 10px; bottom: 10px; font-size: 15px; }
+  #carry .big { font-size: 18px; font-weight: 800; }
+  #carry.full .big { color: var(--red); }
+  #right { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  #minimap { width: 150px; height: 150px; border-radius: 50%; background: rgba(10,14,24,.75); border: 2px solid rgba(255,255,255,.2); }
+  #plist { font-size: 13px; max-width: 200px; }
+  #plist div { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+  #plist span.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  #toasts { position: absolute; top: 90px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(92vw, 560px); }
+  .toast { background: var(--panel); padding: 6px 14px; border-radius: 20px; font-size: 15px; animation: tin .25s ease-out; text-align: center; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+  #hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 15px; text-align: center; max-width: 80vw; }
+  #emotes { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; pointer-events: auto; }
+  #emotes button { font-size: 22px; width: 44px; height: 44px; border-radius: 12px; border: none; background: var(--panel); cursor: pointer; }
+  #money { transition: transform .15s; display: inline-block; }
+  #money.pop { transform: scale(1.18); }
+  #topbar.warn { box-shadow: 0 0 0 2px #ff9f1c, 0 0 18px rgba(255,120,30,.6); animation: warnPulse 1s infinite; }
+  @keyframes warnPulse { 50% { box-shadow: 0 0 0 2px #ff5a1c, 0 0 28px rgba(255,80,30,.8); } }
+  .lbl.bub.vip { background: linear-gradient(180deg,#fff6c8,#ffd54a); }
+  #skillBtn { position: absolute; right: 14px; bottom: 70px; width: 78px; height: 78px; border-radius: 50%; border: 3px solid #ffd54a;
+    background: radial-gradient(circle at 50% 35%, #ff9f5a, #c0392b); color: #fff; pointer-events: auto; cursor: pointer; font: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,.4); overflow: hidden; }
+  #skillBtn b { font-size: 30px; line-height: 1; }
+  #skillBtn small { font-size: 11px; opacity: .9; }
+  #skillBtn::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--cd, 0%); background: rgba(0,0,0,.55); }
+  #skillBtn.cd { border-color: #777; filter: grayscale(.6); }
+  #skillBtn:active { transform: scale(.94); }
+  #qualityBtn { position: absolute; left: 10px; bottom: 56px; pointer-events: auto; font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 10px;
+    border: none; background: var(--panel); color: var(--muted); cursor: pointer; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px rgba(255,0,0,.0); transition: box-shadow .15s; }
+
+  /* overlays */
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 12, 22, .55); }
+  .card { background: var(--panel-solid); border-radius: 20px; padding: 22px 24px; width: min(100%, 520px); max-height: 92vh; overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.08); }
+  .card h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: .5px; background: linear-gradient(90deg, #ffd54a, #ff7b1c);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .card h2 { margin: 0 0 8px; font-size: 26px; }
+  .card p, .card li { color: var(--muted); font-size: 15px; line-height: 1.55; }
+  .card ul { padding-left: 20px; margin: 8px 0; }
+  input[type=text] { width: 100%; font: inherit; font-size: 18px; padding: 10px 14px; border-radius: 12px; border: 2px solid #34405e; background: #0f1422; color: #fff; outline: none; }
+  input[type=text]:focus { border-color: var(--accent); }
+  .btn { font: inherit; font-weight: 800; font-size: 18px; padding: 11px 20px; border-radius: 12px; border: none; cursor: pointer; color: #1a1200;
+    background: linear-gradient(180deg, #ffd54a, #ff9f1c); box-shadow: 0 4px 0 #b86a00; }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b86a00; }
+  .btn.full { width: 100%; margin-top: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .seg button { font: inherit; padding: 6px 14px; border-radius: 10px; border: 2px solid #34405e; background: #0f1422; color: #fff; cursor: pointer; }
+  .seg button.on { border-color: var(--accent); background: #3a2a10; }
+  #lobbyPanel { position: absolute; left: 10px; top: 120px; width: 280px; pointer-events: auto; }
+  #lobbyPanel h3 { margin: 0 0 6px; }
+  #lobbyPanel p { margin: 4px 0; font-size: 13px; color: var(--muted); }
+  table.res { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  table.res th, table.res td { padding: 5px 6px; text-align: center; border-bottom: 1px solid rgba(255,255,255,.08); }
+  table.res th { color: var(--muted); font-weight: 400; }
+  #netMsg { position: fixed; top: 28%; left: 50%; transform: translateX(-50%); max-width: 92vw; text-align: center; font-size: 17px; font-weight: 600;
+    background: rgba(160, 40, 40, .9); padding: 8px 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; }
+  #deadMsg { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; font-weight: 800; text-align: center; text-shadow: 0 3px 8px #000; pointer-events: none; }
+
+  /* joystick */
+  #joy { position: fixed; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.3); pointer-events: none; transform: translate(-50%, -50%); }
+  #joy i { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255,255,255,.55); }
+
+  @media (max-width: 700px) {
+    #minimap { width: 100px; height: 100px; }
+    #plist { display: none; }
+    #money { font-size: 20px; }
+    #coreBar { width: 120px; }
+    #topbar { top: 8px; min-width: 150px; left: auto; right: 118px; transform: none; padding: 6px 10px; }
+    #dayText { font-size: 14px; }
+    #toasts { top: 120px; }
+    .toast { font-size: 13px; }
+    #lobbyPanel { top: auto; bottom: 70px; left: 10px; width: calc(100% - 20px); }
+    #hint { bottom: 64px; font-size: 13px; }
+    #emotes button { width: 38px; height: 38px; font-size: 18px; }
+    #skillBtn { width: 70px; height: 70px; bottom: 120px; }
+    #qualityBtn { bottom: 52px; }
+    .card h1 { font-size: 32px; }
+  }
+</style>
+<script type="importmap">
+  { "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="labels"></div>
+<div id="vignette"></div>
+
+<div id="hud" class="hidden">
+  <div id="stats">
+    <div class="panel"><div id="money">💰 0</div></div>
+    <div class="panel" id="core">🏰 ศาลากลาง <span id="coreText"></span><div id="coreBar"><i></i></div></div>
+  </div>
+  <div id="topbar" class="panel">
+    <div id="dayText">รอเริ่มเกม</div>
+    <div id="phaseBar"><i style="width:0%"></i></div>
+    <div id="totalText"></div>
+  </div>
+  <div id="right">
+    <canvas id="minimap" width="300" height="300"></canvas>
+    <div id="plist" class="panel"></div>
+  </div>
+  <div id="toasts"></div>
+  <div id="carry" class="panel"></div>
+  <div id="hint" class="panel hidden"></div>
+  <button id="skillBtn" title="ฟาดพื้น: ดาเมจวงกว้าง + กระแทกศัตรูกระเด็น"><b>💥</b><small>Space</small></button>
+  <button id="qualityBtn"></button>
+  <div id="emotes">
+    <button data-e="👋">👋</button><button data-e="❤️">❤️</button><button data-e="🆘">🆘</button><button data-e="😂">😂</button>
+  </div>
+  <div id="lobbyPanel" class="panel hidden">
+    <h3>⏳ รอผู้เล่น</h3>
+    <p>เดินสำรวจเมืองได้เลย ใครก็กดเริ่มได้ ผู้เล่นเข้ามาเพิ่มระหว่างเกมได้</p>
+    <p style="margin-top:8px">จำนวนวัน (ความยาวเกม):</p>
+    <div class="row seg" id="daysSeg">
+      <button data-d="3">3 วัน</button><button data-d="5" class="on">5 วัน</button><button data-d="7">7 วัน</button>
+    </div>
+    <button class="btn full" id="startBtn">▶ เริ่มเกม</button>
+  </div>
+</div>
+
+<div id="deadMsg" class="hidden"></div>
+<div id="netMsg" class="hidden"></div>
+<div id="joy" class="hidden"><i></i></div>
+
+<div id="joinOverlay" class="overlay">
+  <div class="card">
+    <h1>🏕️ Wild Town</h1>
+    <p style="margin-top:4px">ช่วยกันสร้างเมืองกลางป่า ขายของให้ชาวบ้าน แล้วรอดจากฝูงมอนสเตอร์ยามค่ำคืน!</p>
+    <ul>
+      <li>🏹 เดินเข้าใกล้หมูป่า — <b>ยิงอัตโนมัติ</b> ได้ 🥩 เนื้อดิบ</li>
+      <li>🪓 ยืนข้างต้นไม้ — <b>ตัดอัตโนมัติ</b> ได้ 🪵 ไม้ซุง → โรงเลื่อยได้ 🪚 ไม้แผ่น</li>
+      <li>🔥 ยืนบนแผ่นของเตาย่าง/โรงเลื่อย เพื่อแปรรูป แล้วยืนรับของออกมา</li>
+      <li>🛒 วางสเต็กที่ร้าน ชาวบ้านจะต่อคิวซื้อ → เก็บ 💰 กองเงิน</li>
+      <li>🔨 ยืนบนแปลงก่อสร้างเพื่อจ่ายเงิน/ไม้ สร้างกำแพง หอธนู จ้างคนงาน อัปเกรด</li>
+      <li>⛏️ ขุดหิน 🪨 อัปเกรดกำแพง/หอธนูเป็นหิน · สร้างปืนใหญ่</li>
+      <li>🌙 กลางคืนประตูมิติเปิด มอนสเตอร์บุก — ปกป้อง 🏰 ศาลากลาง · กด <b>Space</b> ฟาดพื้น!</li>
+      <li>✋ <b>ยืนนิ่งสักครู่</b> ถึงจะตัดไม้/ขุด/ส่งของ/จ่ายเงิน (เดินผ่านเฉยๆ ไม่เสียของ) · ลูกศรสีเหลืองบอกว่าต้องไปไหนต่อ</li>
+    </ul>
+    <p>เดิน: <b>WASD / ลูกศร</b> หรือแตะลากบนจอ · ซูม: ล้อเมาส์</p>
+    <input type="text" id="nameInput" maxlength="14" placeholder="ชื่อของคุณ" autocomplete="off">
+    <button class="btn full" id="joinBtn">เข้าร่วมเกม</button>
+    <p id="joinErr" style="color:var(--red)"></p>
+  </div>
+</div>
+
+<div id="endOverlay" class="overlay hidden">
+  <div class="card" style="text-align:center">
+    <h2 id="endTitle"></h2>
+    <p id="endSub"></p>
+    <table class="res" id="endTable"></table>
+    <button class="btn full" id="againBtn">🔁 เล่นอีกครั้ง</button>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script type="module" src="game.js"></script>
+</body>
+</html>

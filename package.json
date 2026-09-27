@@ -1,0 +1,10 @@
+{
+  "name": "wild-town",
+  "version": "1.0.0",
+  "description": "Multiplayer 3D survival tycoon game (Three.js + zero-dependency Node server)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}

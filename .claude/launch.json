@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wild-town",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 8765
+    },
+    {
+      "name": "wild-town-8766",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set PORT=8766&& node server.js"],
+      "port": 8766
+    }
+  ]
+}
